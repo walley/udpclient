@@ -17,6 +17,16 @@ bool result;
 unsigned long start_millis;
 unsigned long end_millis;
 
+void  comm_info()
+{
+  Serial.print("UDP remote ip:");
+  Serial.print(udp_client.remoteIP());
+  Serial.println();
+  Serial.print("UDP remote port:");
+  Serial.print(udp_client.remotePort());
+  Serial.println();
+}
+
 void setup()
 {
   Serial.begin(9600);
@@ -39,10 +49,8 @@ void setup()
 
 }
 
-
 void loop()
 {
-
   start_millis = millis();
   udp_client.beginPacket(server_ip, server_port);
   udp_client.write(replyPacket);
@@ -64,12 +72,8 @@ void loop()
 
     Serial.printf("UDP packet contents: %s", incomingPacket);
     Serial.println();
-    Serial.print("UDP remote ip:");
-    Serial.print(udp_client.remoteIP());
-    Serial.println();
-    Serial.print("UDP remote port:");
-    Serial.print(udp_client.remotePort());
-    Serial.println();
+    comm_info();
+
     end_millis = millis();
     Serial.print("roundtrip:");
     Serial.println(end_millis - start_millis);
