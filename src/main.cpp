@@ -11,11 +11,11 @@ unsigned int client_port = 12345;  // local port to listen on
 unsigned int server_port = 4210;
 const char * server_ip = "192.168.145.1";
 char incomingPacket[255];  // buffer for incoming packets
-char  replyPacket[] = "client 1 got it";  // a reply string to send back
-
+char  replyPacket[2];  // a reply string to send back
 bool result;
 unsigned long start_millis;
 unsigned long end_millis;
+int race; //state of race 0: stop 1:start 2:cil
 
 void  comm_info()
 {
@@ -47,37 +47,58 @@ void setup()
   Serial.print("listening on port:");
   Serial.println(client_port);
 
+  strcpy(ReplyPacket,"00");
+}
+
+void process_packet(int pckt_size)
+{
+  int res;
+
+  Serial.println(millis());
+  // receive incoming UDP packets
+  Serial.printf("Received %d bytes from %s, port %d", pckt_size, udp_client.remoteIP().toString().c_str(), udp_client.remotePort());
+  Serial.println();
+  int len = udp_client.read(incomingPacket, 255);
+
+  if (len > 0) {
+    incomingPacket[len] = 0;
+  }
+
+  Serial.printf("UDP packet contents: %s", incomingPacket);
+  Serial.println();
+  comm_info();
+
+  if (!strcmp(incomingPacket, "start"))
+  {
+    //start race
+    strcpy(ReplyPacket,"11");
+  } else if (!strcmp(incomingPacket, "stop"))
+    //end race
+    strcpy(ReplyPacket,"00");
+  }
+
+  end_millis = millis();
+  Serial.print("roundtrip:");
+  Serial.println(end_millis - start_millis);
 }
 
 void loop()
 {
+  int packet_size;
+
+  //tady se nekde nadetekuje aktivace cile
+  //if (konec) {strcpy(ReplyPacket,"22");}
+
   start_millis = millis();
   udp_client.beginPacket(server_ip, server_port);
   udp_client.write(replyPacket);
   udp_client.endPacket();
   Serial.print("sent ... ");
 
-  int packetSize = udp_client.parsePacket();
+  packet_size = udp_client.parsePacket();
 
-  if (packetSize) {
-    Serial.println(millis());
-    // receive incoming UDP packets
-    Serial.printf("Received %d bytes from %s, port %d", packetSize, udp_client.remoteIP().toString().c_str(), udp_client.remotePort());
-    Serial.println();
-    int len = udp_client.read(incomingPacket, 255);
-
-    if (len > 0) {
-      incomingPacket[len] = 0;
-    }
-
-    Serial.printf("UDP packet contents: %s", incomingPacket);
-    Serial.println();
-    comm_info();
-
-    end_millis = millis();
-    Serial.print("roundtrip:");
-    Serial.println(end_millis - start_millis);
-
+  if (packet_size) {
+    process_packet(packet_size);
   }
 }
 
