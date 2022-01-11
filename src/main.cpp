@@ -3,6 +3,7 @@
 #include <WiFiUdp.h>
 #include <ESP8266WiFi.h>
 
+#wifi
 const char* ssid = "zavod";
 const char* password = "xxxxxxxxx";
 
@@ -11,7 +12,7 @@ unsigned int client_port = 12345;  // local port to listen on
 unsigned int server_port = 4210;
 const char * server_ip = "192.168.145.1";
 char incomingPacket[255];  // buffer for incoming packets
-char  replyPacket[2];  // a reply string to send back
+char ReplyPacket[2];  // a reply string to send back
 bool result;
 unsigned long start_millis;
 unsigned long end_millis;
@@ -72,7 +73,7 @@ void process_packet(int pckt_size)
   {
     //start race
     strcpy(ReplyPacket,"11");
-  } else if (!strcmp(incomingPacket, "stop"))
+  } else if (!strcmp(incomingPacket, "stop")) {
     //end race
     strcpy(ReplyPacket,"00");
   }
@@ -91,7 +92,7 @@ void loop()
 
   start_millis = millis();
   udp_client.beginPacket(server_ip, server_port);
-  udp_client.write(replyPacket);
+  udp_client.write(ReplyPacket);
   udp_client.endPacket();
   Serial.print("sent ... ");
 
