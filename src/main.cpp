@@ -4,6 +4,7 @@
 #include <ESP8266WiFi.h>
 
 #wifi
+
 const char* ssid = "zavod";
 const char* password = "xxxxxxxxx";
 
@@ -28,27 +29,11 @@ void  comm_info()
   Serial.println();
 }
 
-void setup()
+void initialize_pins()
 {
-  Serial.begin(9600);
-  Serial.println();
-
-  Serial.printf("Connecting to %s ", ssid);
-  WiFi.begin(ssid, password);
-
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
-  }
-
-  Serial.println(" connected");
-  delay(100);
-
-  udp_client.begin(client_port);
-  Serial.print("listening on port:");
-  Serial.println(client_port);
-
-  strcpy(ReplyPacket,"00");
+  pinMode(12, INPUT_PULLUP);  //D6
+  pinMode(LED_BUILTIN, OUTPUT);     // Initialize the LED_BUILTIN pin as an output
+  pinMode(2, OUTPUT);     // Initialize GPIO2 pin as an output
 }
 
 void process_packet(int pckt_size)
@@ -81,6 +66,29 @@ void process_packet(int pckt_size)
   end_millis = millis();
   Serial.print("roundtrip:");
   Serial.println(end_millis - start_millis);
+}
+
+void setup()
+{
+  Serial.begin(9600);
+  Serial.println();
+
+  Serial.printf("Connecting to %s ", ssid);
+  WiFi.begin(ssid, password);
+
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+
+  Serial.println(" connected");
+  delay(100);
+
+  udp_client.begin(client_port);
+  Serial.print("listening on port:");
+  Serial.println(client_port);
+
+  strcpy(ReplyPacket,"00");
 }
 
 void loop()
