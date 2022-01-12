@@ -3,7 +3,9 @@
 #include <WiFiUdp.h>
 #include <ESP8266WiFi.h>
 
-#wifi
+#define BUTTON_1 15
+
+//wifi
 
 const char* ssid = "zavod";
 const char* password = "xxxxxxxxx";
@@ -18,6 +20,8 @@ bool result;
 unsigned long start_millis;
 unsigned long end_millis;
 int race; //state of race 0: stop 1:start 2:cil
+int switch_status;
+int switch_status_last;
 
 void  comm_info()
 {
@@ -31,9 +35,8 @@ void  comm_info()
 
 void initialize_pins()
 {
-  pinMode(12, INPUT_PULLUP);  //D6
-  pinMode(LED_BUILTIN, OUTPUT);     // Initialize the LED_BUILTIN pin as an output
-  pinMode(2, OUTPUT);     // Initialize GPIO2 pin as an output
+  pinMode(15, INPUT_PULLUP);  //D8
+  pinMode(LED_BUILTIN, OUTPUT);   
 }
 
 void process_packet(int pckt_size)
@@ -68,8 +71,41 @@ void process_packet(int pckt_size)
   Serial.println(end_millis - start_millis);
 }
 
+void check_keys()
+{
+  switch_status = digitalRead(BUTTON_1);
+
+  if (!switch_status) {
+    Serial.println("switch pressed");
+ 
+  } else {
+   
+  }
+
+  if (switch_status != switch_status_last) {
+    if (switch_status == HIGH && switch_status_last == LOW) {
+      Serial.println("switch press end");
+
+      if (!race) {
+        //start_race();
+      } else {
+        //abort_race();
+      }
+    }
+
+    if (switch_status == 0 && switch_status_last == 1) {
+      Serial.println("switch press start");
+    }
+  }
+
+  switch_status_last = switch_status;
+
+}
+
 void setup()
 {
+  initialize_pins();
+
   Serial.begin(9600);
   Serial.println();
 
@@ -97,7 +133,7 @@ void loop()
 
   //tady se nekde nadetekuje aktivace cile
   //if (konec) {strcpy(ReplyPacket,"22");}
-
+check_keys();
   start_millis = millis();
   udp_client.beginPacket(server_ip, server_port);
   udp_client.write(ReplyPacket);
