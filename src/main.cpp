@@ -3,7 +3,7 @@
 #include <WiFiUdp.h>
 #include <ESP8266WiFi.h>
 
-#define BUTTON_1 15
+#define BUTTON_1 D6
 
 //wifi
 
@@ -15,7 +15,7 @@ unsigned int client_port = 12345; // local port to listen on
 unsigned int server_port = 4210;
 const char *server_ip = "192.168.145.1";
 char incomingPacket[255]; // buffer for incoming packets
-char ReplyPacket[2];      // a reply string to send back
+char ReplyPacket[3];      // a reply string to send back
 bool result;
 unsigned long start_millis;
 unsigned long end_millis;
@@ -75,12 +75,9 @@ void check_keys()
 {
   switch_status = digitalRead(D6);
 
-  if (switch_status)
-  {
+  if (switch_status)  {
     Serial.println("switch pressed");
-  }
-  else
-  {
+  }  else  {
     Serial.println("switch off");
   }
 
