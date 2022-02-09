@@ -23,6 +23,35 @@ int race; //state of race 0: stop 1:start 2:cil
 int switch_status;
 int switch_status_last;
 
+int get_comm_channel()
+{
+  return 145;
+}
+
+void set_ipv4()
+{
+  int x = get_comm_channel();
+  const char *server_ip = "192.168.145.1";
+  //ip_addr = new IPAddress(192,168,x,1);  //server ip address
+  //gateway = new IPAddress(192,168,x,1);
+  //subnet = new IPAddress(255,255,255,0);
+}
+
+void send_info_packet()
+{
+  udp_client.beginPacket(server_ip, server_port);
+  udp_client.write(ReplyPacket);
+  udp_client.endPacket();
+  Serial.print("sent ... ");
+}
+
+void led_blink()
+{
+digitalWrite(LED_BUILTIN, LOW);
+delay(100);
+digitalWrite(LED_BUILTIN, HIGH);
+}
+
 void comm_info()
 {
   Serial.print("UDP remote ip:");
@@ -60,10 +89,10 @@ void process_packet(int pckt_size)
 
   if (!strcmp(incomingPacket, "start"))  {
     //start race
-    strcpy(ReplyPacket, "11");
+    strcpy(ReplyPacket, "13");
   }  else if (!strcmp(incomingPacket, "stop"))  {
     //end race
-    strcpy(ReplyPacket, "00");
+    strcpy(ReplyPacket, "10");
   }
 
   end_millis = millis();
@@ -75,21 +104,18 @@ void check_keys()
 {
   switch_status = digitalRead(D6);
 
-  if (switch_status)  {
-    Serial.println("switch pressed");
+  if (!switch_status)  {
+//    Serial.println("switch pressed");
   }  else  {
-    Serial.println("switch off");
+//    Serial.println("switch off");
   }
 
   if (switch_status != switch_status_last)  {
     if (switch_status == HIGH && switch_status_last == LOW)    {
       Serial.println("switch press end");
-
-      if (!race)      {
-        //start_race();
-      } else {
-        //abort_race();
-      }
+      strcpy(ReplyPacket, "11");
+      send_info_packet();
+      led_blink();
     }
 
     if (switch_status == 0 && switch_status_last == 1)    {
@@ -99,6 +125,14 @@ void check_keys()
 
   switch_status_last = switch_status;
 }
+
+void heartbeat()
+{
+  udp_client.beginPacket("192.168.145.1", 4210);
+  udp_client.write("19");
+  udp_client.endPacket();
+}
+
 
 void setup()
 {
@@ -127,27 +161,28 @@ void setup()
   strcpy(ReplyPacket, "00");
 }
 
-void send_info_packet()
-{
-  udp_client.beginPacket(server_ip, server_port);
-  udp_client.write(ReplyPacket);
-  udp_client.endPacket();
-  Serial.print("sent ... ");
-}
+unsigned long prev_millis = millis();
 
 void loop()
 {
   int packet_size;
 
-  //tady se nekde nadetekuje aktivace cile
-  //if (konec) {strcpy(ReplyPacket,"22");}
+  unsigned long curr_millis = millis();
+  int interval = 1000;
+
+  if ((unsigned long)(curr_millis - prev_millis) < interval) {
+    check_keys();
+  } else  {
+    heartbeat();
+    prev_millis = millis();
+  }
+  
   check_keys();
 
   start_millis = millis();
 
   packet_size = udp_client.parsePacket();
-  if (packet_size)
-  {
+  if (packet_size)  {
     process_packet(packet_size);
   }
 
