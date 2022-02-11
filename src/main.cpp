@@ -9,6 +9,7 @@
 
 const char *ssid = "zavod";
 const char *password = "xxxxxxxxx";
+const char *lane_id = "1";
 
 WiFiUDP udp_client;
 unsigned int client_port = 12345; // local port to listen on
@@ -39,17 +40,18 @@ void set_ipv4()
 
 void send_info_packet()
 {
+  Serial.println("sending packet");
   udp_client.beginPacket(server_ip, server_port);
   udp_client.write(ReplyPacket);
   udp_client.endPacket();
-  Serial.print("sent ... ");
+  Serial.printf("%s sent ... \n", ReplyPacket);
 }
 
 void led_blink()
 {
-digitalWrite(LED_BUILTIN, LOW);
-delay(100);
-digitalWrite(LED_BUILTIN, HIGH);
+   digitalWrite(LED_BUILTIN, LOW);
+   delay(100);
+   digitalWrite(LED_BUILTIN, HIGH);
 }
 
 void comm_info()
@@ -145,10 +147,11 @@ void setup()
 
   while (WiFi.status() != WL_CONNECTED)
   {
-    delay(500);
+    delay(200);
     Serial.print(".");
   }
 
+  Serial.println("");
   Serial.println(" connected");
   delay(100);
 
@@ -158,7 +161,31 @@ void setup()
   Serial.print("listening on port:");
   Serial.println(client_port);
 
-  strcpy(ReplyPacket, "00");
+//send login packet
+
+  strcpy(ReplyPacket, lane_id);
+  strcpy(ReplyPacket, "0");
+  
+  send_info_packet();
+
+return;
+  //wait for esponse
+
+
+  for(;;) {
+  int len = udp_client.read(incomingPacket, 255);
+    if (len > 0)  {
+      incomingPacket[len] = 0;
+      Serial.println("incoming");
+      Serial.println(incomingPacket);
+      
+      if (!strcmp(incomingPacket, "01"))  {
+      //continue to loop
+      Serial.println("done");
+      //return;
+      }
+    }
+  }
 }
 
 unsigned long prev_millis = millis();
