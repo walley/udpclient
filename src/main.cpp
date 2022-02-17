@@ -5,6 +5,8 @@
 
 #define BUTTON_1 D6
 
+#define PROTO_SPECIAL_CONNECTED "01" 
+#define PROTO_SPECIAL_PONG "02" 
 //wifi
 
 const char *ssid = "zavod";
@@ -16,7 +18,7 @@ unsigned int client_port = 12345; // local port to listen on
 unsigned int server_port = 4210;
 const char *server_ip = "192.168.145.1";
 char incomingPacket[255]; // buffer for incoming packets
-char ReplyPacket[3];      // a reply string to send back
+char ReplyPacket[30];      // a reply string to send back
 bool result;
 unsigned long start_millis;
 unsigned long end_millis;
@@ -41,7 +43,11 @@ void set_ipv4()
 void send_info_packet()
 {
   Serial.println("sending packet");
-  udp_client.beginPacket(server_ip, server_port);
+  Serial.println(server_ip);
+  Serial.println(server_port);
+
+  //udp_client.beginPacket(server_ip, server_port);
+  udp_client.beginPacket("192.168.145.1", 4210);
   udp_client.write(ReplyPacket);
   udp_client.endPacket();
   Serial.printf("%s sent ... \n", ReplyPacket);
@@ -138,6 +144,7 @@ void heartbeat()
 
 void setup()
 {
+int len;
 
   Serial.begin(9600);
   Serial.println();
@@ -164,29 +171,31 @@ void setup()
 //send login packet
 
   strcpy(ReplyPacket, lane_id);
-  strcpy(ReplyPacket, "0");
+  strcat(ReplyPacket, "0");
   
   send_info_packet();
 
-return;
-  //wait for esponse
+  //wait for response
 
-
+Serial.println("waiting ...");
   for(;;) {
-  int len = udp_client.read(incomingPacket, 255);
+    len = udp_client.read(incomingPacket, 255);
     if (len > 0)  {
       incomingPacket[len] = 0;
       Serial.println("incoming");
       Serial.println(incomingPacket);
       
-      if (!strcmp(incomingPacket, "01"))  {
+      if (!strcmp(incomingPacket, PROTO_SPECIAL_CONNECTED))  {
       //continue to loop
       Serial.println("done");
-      //return;
+      return;
       }
     }
+      delay(20);
+
   }
 }
+
 
 unsigned long prev_millis = millis();
 
