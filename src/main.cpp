@@ -64,7 +64,7 @@ void comm_info()
 {
   Serial.print("UDP remote ip:");
   Serial.print(udp_client.remoteIP());
-  Serial.println();
+  Serial.print(" ");
   Serial.print("UDP remote port:");
   Serial.print(udp_client.remotePort());
   Serial.println();
@@ -92,8 +92,12 @@ void process_packet(int pckt_size)
   }
 
   Serial.printf("UDP packet contents: %s", incomingPacket);
-  Serial.println();
   comm_info();
+
+  if (!strcmp(incomingPacket, "00"))  {
+    strcpy(ReplyPacket, lane_id);
+    strcat(ReplyPacket, "2");  
+  }
 
   if (!strcmp(incomingPacket, "start"))  {
     //start race
