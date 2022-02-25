@@ -42,6 +42,7 @@ void set_ipv4()
 
 void send_info_packet()
 {
+  if (! strlen(ReplyPacket) > 0) return;
   Serial.println("sending packet");
   Serial.println(server_ip);
   Serial.println(server_port);
@@ -91,8 +92,9 @@ void process_packet(int pckt_size)
     incomingPacket[len] = 0;
   }
 
-  Serial.printf("UDP packet contents: %s", incomingPacket);
-  comm_info();
+  Serial.printf("Contents: %s", incomingPacket);
+  Serial.println();
+  //comm_info();
 
   if (!strcmp(incomingPacket, "00"))  {
     strcpy(ReplyPacket, lane_id);
@@ -198,6 +200,7 @@ Serial.println("waiting ...");
       delay(20);
 
   }
+  switch_status_last = switch_status = 0;
 }
 
 
@@ -207,13 +210,15 @@ void loop()
 {
   int packet_size;
 
+  strcpy(ReplyPacket,"");
+
   unsigned long curr_millis = millis();
   int interval = 1000;
 
   if ((unsigned long)(curr_millis - prev_millis) < interval) {
     check_keys();
   } else  {
-    heartbeat();
+    //heartbeat();
     prev_millis = millis();
   }
   
@@ -226,5 +231,5 @@ void loop()
     process_packet(packet_size);
   }
 
-  //send_info_packet();
+  send_info_packet();
 }
