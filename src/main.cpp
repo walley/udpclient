@@ -23,6 +23,7 @@ bool result;
 unsigned long start_millis;
 unsigned long end_millis;
 unsigned long press_start;
+int press_counter = 0;
 int race; //state of race 0: stop 1:start 2:cil
 int switch_status;
 int switch_status_last;
@@ -131,11 +132,27 @@ void check_keys()
       strcpy(ReplyPacket, "11");
       send_info_packet();
       led_blink();
-    }
+      //check press length
+      unsigned long press_length = millis() - press_start;
+
+      if (press_length > 5000 && press_length < 7000) {
+        //reset
+        press_counter = 0;
+      }
+      if (press_length > 2000 && press_length < 5000) {
+        //reset
+        press_counter = 0;
+      }
+
+      if (press_length < 1000 && press_counter > 2) {
+        press_counter = 0;
+        //set device
+      }
 
     if (switch_status == 0 && switch_status_last == 1)    {
       Serial.println("switch press start");
       press_start = millis();
+      press_counter++;
     }
   }
 
