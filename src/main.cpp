@@ -9,6 +9,8 @@
 #define PROTO_SPECIAL_PONG "02" 
 //wifi
 
+//#define SERIAL_DEBUG 
+
 const char *ssid = "zavod";
 const char *password = "xxxxxxxxx";
 const char *lane_id = "1";
@@ -45,10 +47,12 @@ void set_ipv4()
 void send_info_packet()
 {
   if (! strlen(ReplyPacket) > 0) return;
-  Serial.println("sending packet");
-  Serial.println(server_ip);
+  
+  #ifdef DEBUG
+  Serial.print("sending packet ");
+  Serial.print(server_ip);
   Serial.println(server_port);
-
+  #endif
   //udp_client.beginPacket(server_ip, server_port);
   udp_client.beginPacket("192.168.145.1", 4210);
   udp_client.write(ReplyPacket);
@@ -86,16 +90,16 @@ void process_packet(int pckt_size)
 
   Serial.println(millis());
   // receive incoming UDP packets
-  Serial.printf("Received %d bytes from %s, port %d", pckt_size, udp_client.remoteIP().toString().c_str(), udp_client.remotePort());
-  Serial.println();
+  //Serial.printf("Received %d bytes from %s, port %d", pckt_size, udp_client.remoteIP().toString().c_str(), udp_client.remotePort());
+  //Serial.println();
   int len = udp_client.read(incomingPacket, 255);
 
   if (len > 0)  {
     incomingPacket[len] = 0;
   }
 
-  Serial.printf("Contents: %s", incomingPacket);
-  Serial.println();
+  //Serial.printf("Contents: %s", incomingPacket);
+  //Serial.println();
   //comm_info();
 
   if (!strcmp(incomingPacket, "00"))  {
@@ -112,8 +116,8 @@ void process_packet(int pckt_size)
   }
 
   end_millis = millis();
-  Serial.print("roundtrip:");
-  Serial.println(end_millis - start_millis);
+  //Serial.print("roundtrip:");
+  //Serial.println(end_millis - start_millis);
 }
 
 void check_keys()
@@ -139,6 +143,7 @@ void check_keys()
         //reset
         press_counter = 0;
       }
+
       if (press_length > 2000 && press_length < 5000) {
         //reset
         press_counter = 0;
@@ -149,7 +154,7 @@ void check_keys()
         //set device
       }
 
-    if (switch_status == 0 && switch_status_last == 1)    {
+    if (switch_status == 0 && switch_status_last == 1) {
       Serial.println("switch press start");
       press_start = millis();
       press_counter++;
@@ -157,6 +162,7 @@ void check_keys()
   }
 
   switch_status_last = switch_status;
+}
 }
 
 void heartbeat()
