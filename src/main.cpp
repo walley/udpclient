@@ -9,6 +9,7 @@
 #define PROTO_SPECIAL_PONG "02" 
 //wifi
 
+#define STATE_SETTING
 //#define SERIAL_DEBUG 
 
 const char *ssid = "zavod";
@@ -26,6 +27,10 @@ unsigned long start_millis;
 unsigned long end_millis;
 unsigned long press_start;
 int press_counter = 0;
+unsigned long press_time = 0;
+int hold_long = 0;
+int hold_short = 0;
+
 int race; //state of race 0: stop 1:start 2:cil
 int switch_status;
 int switch_status_last;
@@ -48,7 +53,7 @@ void send_info_packet()
 {
   if (! strlen(ReplyPacket) > 0) return;
   
-  #ifdef DEBUG
+  #ifdef SERIAL_DEBUG
   Serial.print("sending packet ");
   Serial.print(server_ip);
   Serial.println(server_port);
@@ -57,7 +62,9 @@ void send_info_packet()
   udp_client.beginPacket("192.168.145.1", 4210);
   udp_client.write(ReplyPacket);
   udp_client.endPacket();
+  #ifdef SERIAL_DEBUG
   Serial.printf("%s sent ... \n", ReplyPacket);
+  #endif
 }
 
 void led_blink()
@@ -69,12 +76,14 @@ void led_blink()
 
 void comm_info()
 {
+  #ifdef SERIAL_DEBUG
   Serial.print("UDP remote ip:");
   Serial.print(udp_client.remoteIP());
   Serial.print(" ");
   Serial.print("UDP remote port:");
   Serial.print(udp_client.remotePort());
   Serial.println();
+  #endif
 }
 
 void initialize_pins()
@@ -88,7 +97,7 @@ void process_packet(int pckt_size)
 {
   int res;
 
-  Serial.println(millis());
+  //Serial.println(millis());
   // receive incoming UDP packets
   //Serial.printf("Received %d bytes from %s, port %d", pckt_size, udp_client.remoteIP().toString().c_str(), udp_client.remotePort());
   //Serial.println();
@@ -125,44 +134,76 @@ void check_keys()
   switch_status = digitalRead(D6);
 
   if (!switch_status)  {
-//    Serial.println("switch pressed");
+    //Serial.print("*");
+    if (press_start) {
+      press_time = millis() - press_start;
+    }
   }  else  {
-//    Serial.println("switch off");
+    press_time = 0;
+    //Serial.println("switch off");
   }
 
   if (switch_status != switch_status_last)  {
+
+    //DEPRESS
     if (switch_status == HIGH && switch_status_last == LOW)    {
+      Serial.println(".");
       Serial.println("switch press end");
       strcpy(ReplyPacket, "11");
       send_info_packet();
       led_blink();
       //check press length
+
       unsigned long press_length = millis() - press_start;
 
-      if (press_length > 5000 && press_length < 7000) {
-        //reset
+      Serial.println(press_counter);
+      Serial.println(press_length);
+
+      if (press_length > 700 && press_length < 1000) {
+        Serial.println("long press");
+        //reset counter
         press_counter = 0;
       }
 
-      if (press_length > 2000 && press_length < 5000) {
-        //reset
+      if (press_length > 300 && press_length < 700) {
+        Serial.println("short press");
+        //reset counter
         press_counter = 0;
       }
 
-      if (press_length < 1000 && press_counter > 2) {
+      /*if (press_length > 100 && press_length < 300 && press_counter > 2) {
+        Serial.println("double press");
+        //reset counter
         press_counter = 0;
         //set device
-      }
+      }*/
 
-    if (switch_status == 0 && switch_status_last == 1) {
+      press_start = 0;
+    }
+
+    //PRESS
+    if (switch_status == LOW && switch_status_last == HIGH)    {
       Serial.println("switch press start");
       press_start = millis();
       press_counter++;
     }
+    
+    switch_status_last = switch_status;
   }
 
-  switch_status_last = switch_status;
-}
+  //long hold
+  if (press_time > 1000) {
+    press_counter = 0;
+    Serial.println("long hold");
+    hold_long = 1;
+  }
+  
+  if (press_time > 300) {
+    press_counter = 0;
+    //Serial.println("double click cleared");
+
+  }
+
 }
 
 void heartbeat()
@@ -208,7 +249,7 @@ int len;
 
   //wait for response
 
-Serial.println("waiting ...");
+  Serial.println("waiting ...");
   for(;;) {
     len = udp_client.read(incomingPacket, 255);
     if (len > 0)  {
@@ -222,9 +263,11 @@ Serial.println("waiting ...");
       return;
       }
     }
-      delay(20);
+    delay(10);
+    Serial.print("#");
 
   }
+  Serial.println("connected");
   switch_status_last = switch_status = 0;
 }
 
