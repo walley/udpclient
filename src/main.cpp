@@ -5,15 +5,15 @@
 
 #define BUTTON_1 D6
 
-#define PROTO_SPECIAL_CONNECTED "01" 
-#define PROTO_SPECIAL_PONG "02" 
+#define PROTO_SPECIAL_CONNECTED "01"
+#define PROTO_SPECIAL_PONG "02"
 //wifi
 
 #define STATE_SETTING 1234
 #define STATE_NOTHING 0
 #define STATE_RACE 1235
 
-//#define SERIAL_DEBUG 
+//#define SERIAL_DEBUG
 //#define KEYBOARD_DEBUG
 //#define LED_DEBUG
 
@@ -58,38 +58,38 @@ void set_ipv4()
 void send_info_packet()
 {
   if (! strlen(ReplyPacket) > 0) return;
-  
-  #ifdef SERIAL_DEBUG
+
+#ifdef SERIAL_DEBUG
   Serial.print("sending packet ");
   Serial.print(server_ip);
   Serial.println(server_port);
-  #endif
+#endif
   //udp_client.beginPacket(server_ip, server_port);
   udp_client.beginPacket("192.168.145.1", 4210);
   udp_client.write(ReplyPacket);
   udp_client.endPacket();
-  #ifdef SERIAL_DEBUG
+#ifdef SERIAL_DEBUG
   Serial.printf("%s sent ... \n", ReplyPacket);
-  #endif
+#endif
 }
 
 void led_blink()
 {
-   digitalWrite(LED_BUILTIN, LOW);
-   delay(100);
-   digitalWrite(LED_BUILTIN, HIGH);
+  digitalWrite(LED_BUILTIN, LOW);
+  delay(100);
+  digitalWrite(LED_BUILTIN, HIGH);
 }
 
 void comm_info()
 {
-  #ifdef SERIAL_DEBUG
+#ifdef SERIAL_DEBUG
   Serial.print("UDP remote ip:");
   Serial.print(udp_client.remoteIP());
   Serial.print(" ");
   Serial.print("UDP remote port:");
   Serial.print(udp_client.remotePort());
   Serial.println();
-  #endif
+#endif
 }
 
 void initialize_pins()
@@ -119,7 +119,7 @@ void process_packet(int pckt_size)
 
   if (!strcmp(incomingPacket, "00"))  {
     strcpy(ReplyPacket, lane_id);
-    strcat(ReplyPacket, "2");  
+    strcat(ReplyPacket, "2");
   }
 
   if (!strcmp(incomingPacket, "start"))  {
@@ -152,7 +152,7 @@ void check_keys()
   if (switch_status != switch_status_last)  {
 
     //DEPRESS
-    if (switch_status == HIGH && switch_status_last == LOW)    {
+    if (switch_status == HIGH && switch_status_last == LOW) {
       Serial.println(".");
       Serial.println("switch press end");
       strcpy(ReplyPacket, "11");
@@ -193,7 +193,7 @@ void check_keys()
       press_start = millis();
       press_counter++;
     }
-    
+
     switch_status_last = switch_status;
   }
 
@@ -203,7 +203,7 @@ void check_keys()
     Serial.println("long hold");
     hold_long = 1;
   }
-  
+
   if (press_time > 300) {
     press_counter = 0;
     //Serial.println("double click cleared");
@@ -222,7 +222,7 @@ void heartbeat()
 
 void setup()
 {
-int len;
+  int len;
 
   Serial.begin(9600);
   Serial.println();
@@ -230,8 +230,7 @@ int len;
   Serial.printf("Connecting to %s ", ssid);
   WiFi.begin(ssid, password);
 
-  while (WiFi.status() != WL_CONNECTED)
-  {
+  while (WiFi.status() != WL_CONNECTED) {
     delay(200);
     Serial.print(".");
   }
@@ -250,29 +249,33 @@ int len;
 
   strcpy(ReplyPacket, lane_id);
   strcat(ReplyPacket, "0");
-  
+
   send_info_packet();
 
   //wait for response
 
   Serial.println("waiting ...");
-  for(;;) {
+
+  for (;;) {
     len = udp_client.read(incomingPacket, 255);
+
     if (len > 0)  {
       incomingPacket[len] = 0;
       Serial.println("incoming");
       Serial.println(incomingPacket);
-      
+
       if (!strcmp(incomingPacket, PROTO_SPECIAL_CONNECTED))  {
-      //continue to loop
-      Serial.println("done");
-      return;
+        //continue to loop
+        Serial.println("done");
+        return;
       }
     }
+
     delay(10);
     Serial.print("#");
 
   }
+
   Serial.println("connected");
   switch_status_last = switch_status = 0;
 }
@@ -295,12 +298,13 @@ void loop()
     //heartbeat();
     prev_millis = millis();
   }
-  
+
   check_keys();
 
   start_millis = millis();
 
   packet_size = udp_client.parsePacket();
+
   if (packet_size)  {
     process_packet(packet_size);
   }
