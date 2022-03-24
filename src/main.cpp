@@ -161,7 +161,7 @@ void initialize_pins()
   pinMode(LED_BUILTIN, OUTPUT);
 
   pinMode(LED_STATUS, OUTPUT);
-  
+
   pinMode(LED_BIN_1, OUTPUT);
   pinMode(LED_BIN_2, OUTPUT);
   pinMode(LED_BIN_3, OUTPUT);
@@ -265,7 +265,6 @@ void check_keys()
   switch_status = digitalRead(D6);
 
   if (!switch_status)  {
-    //Serial.print("*");
     //pressed
     if (press_start) {
       press_time = millis() - press_start;
@@ -274,7 +273,6 @@ void check_keys()
     //depressed
     press_time = 0;
     hold_long = 0;
-    //Serial.println("switch off");
   }
 
   if (switch_status != switch_status_last)  {
@@ -289,15 +287,11 @@ void check_keys()
       strcpy(ReplyPacket, "11");
       send_info_packet();
       led_blink();
-      //check press length
 
       unsigned long press_length = millis() - press_start;
 
-//      Serial.println(press_counter);
-//      Serial.println(press_length);
-
       if (press_length > 700 && press_length < 1500) {
-        //Serial.println("long press");
+        //long press
         //reset counter
         press_counter = 0;
 
@@ -307,7 +301,7 @@ void check_keys()
       }
 
       if (press_length > 100 && press_length < 700) {
-        //Serial.println("short press");
+        //short press
         press_short();
       }
 
@@ -337,7 +331,14 @@ void check_keys()
     press_counter = 0;
     //Serial.println("long hold");
     hold_long = 1;
-    machine_state = STATE_SETTING;
+
+    if (machine_state == STATE_SETTING) {
+      machine_state = STATE_RACE;
+      hold_long = 0;
+    } else {
+      machine_state = STATE_SETTING;
+      setting_state = STATE_SETTING_NETWORK;
+    }
   }
 
   if (press_time > 300) {
