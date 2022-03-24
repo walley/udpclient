@@ -9,8 +9,10 @@
 #define PROTO_SPECIAL_PONG "02"
 //wifi
 
-#define STATE_SETTING 1234
 #define STATE_NOTHING 0
+#define STATE_CHECK 1232
+#define STATE_LOGIN 1233
+#define STATE_SETTING 1234
 #define STATE_RACE 1235
 #define STATE_SETTING_NETWORK 12
 #define STATE_SETTING_DEVICE  13
@@ -21,7 +23,7 @@
 #define LED_BIN_3 D8
 
 //#define SERIAL_DEBUG
-//#define KEYBOARD_DEBUG
+#define KEYBOARD_DEBUG
 //#define LED_DEBUG
 
 const char *ssid = "zavod";
@@ -114,15 +116,23 @@ void led_status_lights()
           led_setup_interval = 600;
           break;
       }
+
+      if ((unsigned long)(millis() - led_prev_millis) < led_setup_interval) {
+        digitalWrite(LED_STATUS, led_status_light);
+      } else  {
+
+        led_prev_millis = millis();
+        led_status_light = !led_status_light;
+      }
+
+      break;
+
+    case STATE_RACE:
+      digitalWrite(LED_STATUS, HIGH);
+      break;
   }
 
-  if ((unsigned long)(millis() - led_prev_millis) < led_setup_interval) {
-    digitalWrite(LED_STATUS, led_status_light);
-  } else  {
 
-    led_prev_millis = millis();
-    led_status_light = !led_status_light;
-  }
 }
 
 void led_bin_lights(int x)
@@ -217,6 +227,9 @@ void press_short ()
   press_counter = 0;
 
   switch  (machine_state) {
+    case STATE_RACE:
+      break;
+
     case STATE_SETTING:
       switch  (setting_state) {
         case STATE_SETTING_NETWORK:
@@ -294,6 +307,9 @@ void check_keys()
         //long press
         //reset counter
         press_counter = 0;
+#ifdef KEYBOARD_DEBUG
+        Serial.println("long press");
+#endif
 
         if (machine_state == STATE_SETTING && setting_state == STATE_SETTING_NETWORK) {
           setting_state = STATE_SETTING_DEVICE;
@@ -329,7 +345,13 @@ void check_keys()
 //long hold
   if (press_time > 3000 and !hold_long) {
     press_counter = 0;
-    //Serial.println("long hold");
+#ifdef KEYBOARD_DEBUG
+    Serial.println("long hold");
+    Serial.print("machine_state:");
+    Serial.println(machine_state);
+    Serial.print("setting_state:");
+    Serial.println(setting_state);
+#endif
     hold_long = 1;
 
     if (machine_state == STATE_SETTING) {
@@ -361,21 +383,21 @@ void setup()
 {
   int len;
 
-  //Serial.begin(9600);
-  //Serial.println();
+  Serial.begin(9600);
+  Serial.println();
 
-  //Serial.printf("Connecting to %s ", ssid);
+  Serial.printf("Connecting to %s ", ssid);
   initialize_leds();
 
   WiFi.begin(ssid, password);
 
   while (WiFi.status() != WL_CONNECTED) {
     delay(200);
-    //Serial.print(".");
+    Serial.print(".");
   }
 
-  //erial.println("");
-  //Serial.println(" connected");
+  Serial.println("");
+  Serial.println(" connected");
   delay(100);
 
   initialize_pins();
