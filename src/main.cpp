@@ -15,6 +15,10 @@
 #define STATE_SETTING_NETWORK 12
 #define STATE_SETTING_DEVICE  13
 
+#define LED_STATUS D4
+#define LED_BIN_1 D2
+#define LED_BIN_2 D3
+#define LED_BIN_3 D1
 
 //#define SERIAL_DEBUG
 //#define KEYBOARD_DEBUG
@@ -39,6 +43,10 @@ unsigned long press_time = 0;
 int hold_long = 0;
 int hold_short = 0;
 int network_identification = 0;
+int device_identification = 0;
+unsigned long led_setup_interval;
+unsigned long led_prev_millis;
+int led_status_light = 0;
 
 int race; //state of race 0: stop 1:start 2:cil
 int switch_status;
@@ -80,10 +88,45 @@ void send_info_packet()
 
 void led_blink()
 {
+
   digitalWrite(LED_BUILTIN, LOW);
+  digitalWrite(LED_STATUS, LOW);
   delay(100);
+  digitalWrite(LED_STATUS, HIGH);
   digitalWrite(LED_BUILTIN, HIGH);
 }
+
+void led_status_lights()
+{
+  switch  (machine_state) {
+    case STATE_SETTING:
+      switch  (setting_state) {
+        case STATE_SETTING_NETWORK:
+          led_setup_interval = 200;
+          break;
+
+        case STATE_SETTING_DEVICE:
+          led_setup_interval = 600;
+          break;
+      }
+  }
+
+  if ((unsigned long)(millis() - led_prev_millis) < led_setup_interval) {
+    digitalWrite(LED_STATUS, led_status_light);
+  } else  {
+
+    led_prev_millis = millis();
+    led_status_light = !led_status_light;
+  }
+}
+
+void led_bin_lights(int x)
+{
+  digitalWrite(LED_BIN_1, HIGH);
+  digitalWrite(LED_BIN_2, HIGH);
+  digitalWrite(LED_BIN_3, HIGH);
+}
+
 
 void comm_info()
 {
@@ -101,7 +144,13 @@ void initialize_pins()
 {
   pinMode(15, INPUT_PULLUP); //D8
   pinMode(12, INPUT_PULLUP); //D6
+
   pinMode(LED_BUILTIN, OUTPUT);
+
+  pinMode(LED_STATUS, OUTPUT);
+  pinMode(LED_BIN_1, OUTPUT);
+  pinMode(LED_BIN_2, OUTPUT);
+  pinMode(LED_BIN_3, OUTPUT);
 }
 
 void process_packet(int pckt_size)
@@ -142,6 +191,45 @@ void process_packet(int pckt_size)
 
 void press_short ()
 {
+  //reset counter
+  press_counter = 0;
+
+  switch  (machine_state) {
+    case STATE_SETTING:
+      switch  (setting_state) {
+        case STATE_SETTING_NETWORK:
+          if (++network_identification > 7) {
+            network_identification = 0;
+          }
+
+          led_blink();
+          Serial.print("network_identification:");
+          Serial.println(network_identification);
+          led_bin_lights(network_identification);
+          break;
+
+        case STATE_SETTING_DEVICE:
+          if (++device_identification > 7) {
+            device_identification = 0;
+          }
+
+          led_blink();
+          Serial.print("device_identification:");
+          Serial.println(device_identification);
+          led_bin_lights(device_identification);
+          break;
+
+        default:
+          break;
+      }
+
+      break;
+
+    default:
+      Serial.println("no known machine state");
+      break;
+  }
+
 }
 
 void check_keys()
@@ -180,81 +268,55 @@ void check_keys()
       Serial.println(press_counter);
       Serial.println(press_length);
 
-      if (press_length > 700 && press_length < 1000) {
+      if (press_length > 700 && press_length < 1500) {
         Serial.println("long press");
         //reset counter
         press_counter = 0;
 
-        if (machine_state == STATE_SETTING) {
+        if (machine_state == STATE_SETTING && setting_state == STATE_SETTING_NETWORK) {
+          setting_state = STATE_SETTING_DEVICE;
         }
       }
 
       if (press_length > 100 && press_length < 700) {
         Serial.println("short press");
-        //reset counter
-        press_counter = 0;
-
-        switch  (machine_state) {
-          case STATE_SETTING:
-            switch  (setting_state) {
-              case STATE_SETTING_NETWORK:
-                if (++network_identification > 7) {
-                  network_identification = 0;
-                }
-
-                led_blink();
-                Serial.print("network_identification:");
-                Serial.println(network_identification);
-                break;
-
-              case STATE_SETTING_DEVICE:
-                break;
-            }
-
-            break;
-deault:
-            Serial.println("no known smachine state");
-            break;
-        }
+        press_short();
       }
 
+
+      /*if (press_length > 100 && press_length < 300 && press_counter > 2) {
+        Serial.println("double press");
+        //reset counter
+        press_counter = 0;
+        //set device
+      }*/
+
+      press_start = 0;
     }
 
-    /*if (press_length > 100 && press_length < 300 && press_counter > 2) {
-      Serial.println("double press");
-      //reset counter
-      press_counter = 0;
-      //set device
-    }*/
+//PRESS
+    if (switch_status == LOW && switch_status_last == HIGH) {
+      Serial.println("switch press start");
+      press_start = millis();
+      press_counter++;
+    }
 
-    press_start = 0;
+    switch_status_last = switch_status;
   }
-
-  //PRESS
-  if (switch_status == LOW && switch_status_last == HIGH)    {
-    Serial.println("switch press start");
-    press_start = millis();
-    press_counter++;
-  }
-
-  switch_status_last = switch_status;
-}
 
 //long hold
-if (press_time > 1000 and !hold_long)
-{
-  press_counter = 0;
-  Serial.println("long hold");
-  hold_long = 1;
-  machine_state = STATE_SETTING;
-}
+  if (press_time > 3000 and !hold_long) {
+    press_counter = 0;
+    Serial.println("long hold");
+    hold_long = 1;
+    machine_state = STATE_SETTING;
+  }
 
-if (press_time > 300)
-{
-  press_counter = 0;
-  //Serial.println("double click cleared");
+  if (press_time > 300) {
+    press_counter = 0;
+    //Serial.println("double click cleared");
 
-}
+  }
 
 }
 
@@ -340,6 +402,7 @@ void loop()
 
   if ((unsigned long)(curr_millis - prev_millis) < interval) {
     check_keys();
+    led_status_lights();
   } else  {
     //heartbeat();
     prev_millis = millis();
