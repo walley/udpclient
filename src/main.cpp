@@ -54,6 +54,11 @@ int switch_status_last;
 int machine_state = STATE_NOTHING;
 int setting_state = STATE_SETTING_NETWORK;
 
+bool check_condition(int num,int pos)
+{
+    return (num & (1<<pos));
+}
+
 int get_comm_channel()
 {
   return 145;
