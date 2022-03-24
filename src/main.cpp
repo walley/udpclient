@@ -17,8 +17,8 @@
 
 #define LED_STATUS D4
 #define LED_BIN_1 D2
-#define LED_BIN_2 D3
-#define LED_BIN_3 D1
+#define LED_BIN_2 D5
+#define LED_BIN_3 D8
 
 //#define SERIAL_DEBUG
 //#define KEYBOARD_DEBUG
@@ -54,9 +54,9 @@ int switch_status_last;
 int machine_state = STATE_NOTHING;
 int setting_state = STATE_SETTING_NETWORK;
 
-bool check_condition(int num,int pos)
+bool is_bit(int num, int pos)
 {
-    return (num & (1<<pos));
+  return (num & (1 << pos));
 }
 
 int get_comm_channel()
@@ -75,7 +75,7 @@ void set_ipv4()
 
 void send_info_packet()
 {
-  if (! strlen(ReplyPacket) > 0) return;
+  if (! (strlen(ReplyPacket) > 0)) return;
 
 #ifdef SERIAL_DEBUG
   Serial.print("sending packet ");
@@ -127,9 +127,17 @@ void led_status_lights()
 
 void led_bin_lights(int x)
 {
-  digitalWrite(LED_BIN_1, HIGH);
-  digitalWrite(LED_BIN_2, HIGH);
-  digitalWrite(LED_BIN_3, HIGH);
+#ifdef LED_DEBUG
+  Serial.print(is_bit(x,2));
+  Serial.print(is_bit(x,1));
+  Serial.print(is_bit(x,0));
+  Serial.println();
+#endif
+
+  digitalWrite(LED_BIN_1, is_bit(x,2) ? HIGH : LOW );
+  digitalWrite(LED_BIN_2, is_bit(x,1) ? HIGH : LOW );
+  digitalWrite(LED_BIN_3, is_bit(x,0) ? HIGH : LOW );
+
 }
 
 
@@ -153,10 +161,19 @@ void initialize_pins()
   pinMode(LED_BUILTIN, OUTPUT);
 
   pinMode(LED_STATUS, OUTPUT);
+  
   pinMode(LED_BIN_1, OUTPUT);
   pinMode(LED_BIN_2, OUTPUT);
   pinMode(LED_BIN_3, OUTPUT);
 }
+
+void initialize_leds()
+{
+  digitalWrite(LED_BIN_1, LOW);
+  digitalWrite(LED_BIN_2, LOW);
+  digitalWrite(LED_BIN_3, LOW);
+}
+
 
 void process_packet(int pckt_size)
 {
@@ -208,8 +225,10 @@ void press_short ()
           }
 
           led_blink();
+#ifdef LED_DEBUG
           Serial.print("network_identification:");
           Serial.println(network_identification);
+#endif
           led_bin_lights(network_identification);
           break;
 
@@ -219,8 +238,10 @@ void press_short ()
           }
 
           led_blink();
+#ifdef LED_DEBUG
           Serial.print("device_identification:");
           Serial.println(device_identification);
+#endif
           led_bin_lights(device_identification);
           break;
 
@@ -231,7 +252,9 @@ void press_short ()
       break;
 
     default:
+#ifdef LED_DEBUG
       Serial.println("no known machine state");
+#endif
       break;
   }
 
@@ -258,11 +281,11 @@ void check_keys()
 
     //DEPRESS
     if (switch_status == HIGH && switch_status_last == LOW) {
-
+#ifdef KEYBOARD_DEBUG
       Serial.println("switch press end");
       Serial.print("machine_state:");
       Serial.println(machine_state);
-
+#endif
       strcpy(ReplyPacket, "11");
       send_info_packet();
       led_blink();
@@ -270,11 +293,11 @@ void check_keys()
 
       unsigned long press_length = millis() - press_start;
 
-      Serial.println(press_counter);
-      Serial.println(press_length);
+//      Serial.println(press_counter);
+//      Serial.println(press_length);
 
       if (press_length > 700 && press_length < 1500) {
-        Serial.println("long press");
+        //Serial.println("long press");
         //reset counter
         press_counter = 0;
 
@@ -284,7 +307,7 @@ void check_keys()
       }
 
       if (press_length > 100 && press_length < 700) {
-        Serial.println("short press");
+        //Serial.println("short press");
         press_short();
       }
 
@@ -301,7 +324,7 @@ void check_keys()
 
 //PRESS
     if (switch_status == LOW && switch_status_last == HIGH) {
-      Serial.println("switch press start");
+      //Serial.println("switch press start");
       press_start = millis();
       press_counter++;
     }
@@ -312,7 +335,7 @@ void check_keys()
 //long hold
   if (press_time > 3000 and !hold_long) {
     press_counter = 0;
-    Serial.println("long hold");
+    //Serial.println("long hold");
     hold_long = 1;
     machine_state = STATE_SETTING;
   }
@@ -337,26 +360,28 @@ void setup()
 {
   int len;
 
-  Serial.begin(9600);
-  Serial.println();
+  //Serial.begin(9600);
+  //Serial.println();
 
-  Serial.printf("Connecting to %s ", ssid);
+  //Serial.printf("Connecting to %s ", ssid);
+  initialize_leds();
+
   WiFi.begin(ssid, password);
 
   while (WiFi.status() != WL_CONNECTED) {
     delay(200);
-    Serial.print(".");
+    //Serial.print(".");
   }
 
-  Serial.println("");
-  Serial.println(" connected");
+  //erial.println("");
+  //Serial.println(" connected");
   delay(100);
 
   initialize_pins();
 
   udp_client.begin(client_port);
-  Serial.print("listening on port:");
-  Serial.println(client_port);
+  //Serial.print("listening on port:");
+  //Serial.println(client_port);
 
 //send login packet
 
@@ -367,29 +392,29 @@ void setup()
 
   //wait for response
 
-  Serial.println("waiting ...");
+  //Serial.println("waiting ...");
 
   for (;;) {
     len = udp_client.read(incomingPacket, 255);
 
     if (len > 0)  {
       incomingPacket[len] = 0;
-      Serial.println("incoming");
-      Serial.println(incomingPacket);
+      //Serial.println("incoming");
+      //Serial.println(incomingPacket);
 
       if (!strcmp(incomingPacket, PROTO_SPECIAL_CONNECTED))  {
         //continue to loop
-        Serial.println("done");
+        //Serial.println("done");
         return;
       }
     }
 
     delay(10);
-    Serial.print("#");
+    //Serial.print("#");
 
   }
 
-  Serial.println("connected");
+  //Serial.println("connected");
   switch_status_last = switch_status = 0;
 }
 
