@@ -397,10 +397,10 @@ int settings_get()
     return 0;
   }
 
-  while(f.available()) {
-String line = f.readStringUntil('\n');
-Serial.println(line);
-}
+  while (f.available()) {
+    String line = f.readStringUntil('\n');
+    Serial.println(line);
+  }
 
   f.close();
   return 1;
@@ -434,6 +434,7 @@ void settings_show()
 
 
   //network setting
+  settings_get();
   led_bin_lights(network_identification);
   blink_for(3);
   //device setting
