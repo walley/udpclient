@@ -354,13 +354,21 @@ void check_keys()
 #endif
     hold_long = 1;
 
-    if (machine_state == STATE_SETTING) {
-      machine_state = STATE_RACE;
-      hold_long = 0;
-    } else {
-      machine_state = STATE_SETTING;
-      setting_state = STATE_SETTING_NETWORK;
+    switch (machine_state) {
+      case STATE_SETTING:
+        machine_state = STATE_RACE;
+        hold_long = 0;
+        break;
+
+      case STATE_NOTHING:
+        machine_state = STATE_SETTING;
+        setting_state = STATE_SETTING_NETWORK;
+        break;
+
+      case STATE_RACE:
+        break;
     }
+
   }
 
   if (press_time > 300) {
