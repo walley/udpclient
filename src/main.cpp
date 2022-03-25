@@ -2,6 +2,7 @@
 #include <ESP8266WiFi.h>
 #include <WiFiUdp.h>
 #include <ESP8266WiFi.h>
+#include <LittleFS.h>
 
 #define BUTTON_1 D6
 
@@ -386,6 +387,59 @@ void heartbeat()
   udp_client.endPacket();
 }
 
+int settings_get()
+{
+  File f;
+
+  f = LittleFS.open("/data.txt", "r");
+
+  if (!f) {
+    return 0;
+  }
+
+
+  f.close();
+  return 1;
+}
+
+void settings_set()
+{
+}
+
+
+void blink_for(int sec)
+{
+  unsigned long start = millis();
+  unsigned long led_prev_millis = millis();
+  int led_status_light = 1;
+
+  while (millis() < start + 3000 ) {
+
+    if ((unsigned long)(millis() - led_prev_millis) < led_setup_interval) {
+      digitalWrite(LED_STATUS, led_status_light);
+    } else {
+
+      led_prev_millis = millis();
+      led_status_light = !led_status_light;
+    }
+  }
+}
+
+void settings_show()
+{
+
+
+  //network setting
+  led_bin_lights(network_identification);
+  blink_for(3);
+  //device setting
+  led_bin_lights(device_identification);
+  blink_for(3);
+
+  //light up state_led
+  digitalWrite(LED_STATUS, HIGH);
+}
+
 
 void setup()
 {
@@ -393,6 +447,12 @@ void setup()
 
   Serial.begin(9600);
   Serial.println();
+
+  if (!LittleFS.begin()) {
+    Serial.println("fs error");
+  }
+
+  settings_get();
 
   Serial.printf("Connecting to %s ", ssid);
   initialize_leds();
