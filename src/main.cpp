@@ -397,6 +397,10 @@ int settings_get()
     return 0;
   }
 
+  while(f.available()) {
+String line = f.readStringUntil('\n');
+Serial.println(line);
+}
 
   f.close();
   return 1;
