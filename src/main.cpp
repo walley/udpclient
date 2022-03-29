@@ -25,9 +25,9 @@
 
 //#define SERIAL_DEBUG
 #define KEYBOARD_DEBUG
-//#define LED_DEBUG
+#define LED_DEBUG
 
-const char *ssid = "zavod";
+char ssid[7];
 const char *password = "xxxxxxxxx";
 const char *lane_id = "1";
 
@@ -222,6 +222,59 @@ void process_packet(int pckt_size)
   //Serial.println(end_millis - start_millis);
 }
 
+int settings_get()
+{
+  File f;
+
+  f = LittleFS.open("/data.txt", "r");
+
+  if (!f) {
+    return 0;
+  }
+
+  Serial.println("settings netvork device");
+
+  if (f.available()) {
+    String line = f.readStringUntil('\n');
+    Serial.println(line);
+    int x = atoi(line.c_str());
+    network_identification = x;
+  } else {
+    network_identification = 0;
+  }
+
+  if (f.available()) {
+    String line = f.readStringUntil('\n');
+    Serial.println(line);
+    int x = atoi(line.c_str());
+    device_identification = x;
+  } else {
+    device_identification = 0;
+  }
+
+  f.close();
+
+  strcpy(ssid,"zavod");
+  return 1;
+}
+
+int settings_set()
+{
+  File f;
+
+  f = LittleFS.open("/data.txt", "w");
+
+  if (!f) {
+    return 0;
+  }
+
+  f.println(network_identification);
+  f.println(device_identification);
+
+  f.close();
+  return 1;
+}
+
 void press_short ()
 {
   //reset counter
@@ -273,6 +326,7 @@ void press_short ()
   }
 
 }
+
 
 void check_keys()
 {
@@ -358,6 +412,7 @@ void check_keys()
     switch (machine_state) {
       case STATE_SETTING:
         machine_state = STATE_RACE;
+        settings_set();
         hold_long = 0;
         break;
 
@@ -387,62 +442,54 @@ void heartbeat()
   udp_client.endPacket();
 }
 
-int settings_get()
-{
-  File f;
 
-  f = LittleFS.open("/data.txt", "r");
-
-  if (!f) {
-    return 0;
-  }
-
-  while (f.available()) {
-    String line = f.readStringUntil('\n');
-    Serial.println(line);
-  }
-
-  f.close();
-  return 1;
-}
-
-void settings_set()
-{
-}
-
-
-void blink_for(int sec)
+void blink_for(int sec, int interval)
 {
   unsigned long start = millis();
-  unsigned long led_prev_millis = millis();
+  unsigned long led_prev_millis = start;
   int led_status_light = 1;
 
-  while (millis() < start + 3000 ) {
+  Serial.println("blink start");
 
-    if ((unsigned long)(millis() - led_prev_millis) < led_setup_interval) {
+  while (millis() < start + sec * 1000) {
+    if ((millis() - led_prev_millis) < interval) {
+      Serial.println("in");
       digitalWrite(LED_STATUS, led_status_light);
     } else {
+      Serial.println("out");
 
       led_prev_millis = millis();
       led_status_light = !led_status_light;
     }
   }
+
+  Serial.println("blink done");
 }
 
 void settings_show()
 {
-
+  Serial.println("settings show (n d)");
 
   //network setting
-  settings_get();
+  if (settings_get()) {
+    Serial.println("settings get");
+  } else {
+    Serial.println("settings not");
+  }
+
+  Serial.println(network_identification);
+  Serial.println(device_identification);
+
   led_bin_lights(network_identification);
-  blink_for(3);
+  blink_for(3, 300);
   //device setting
   led_bin_lights(device_identification);
-  blink_for(3);
+  blink_for(3, 600);
 
+  delay(5000);
   //light up state_led
   digitalWrite(LED_STATUS, HIGH);
+  Serial.println("settings done");
 }
 
 
@@ -452,15 +499,20 @@ void setup()
 
   Serial.begin(9600);
   Serial.println();
+  initialize_pins();
+  initialize_leds();
 
   if (!LittleFS.begin()) {
     Serial.println("fs error");
   }
 
-  settings_get();
+  Serial.println("settings");
+  settings_show();
+
+
+  Serial.println("wifi");
 
   Serial.printf("Connecting to %s ", ssid);
-  initialize_leds();
 
   WiFi.begin(ssid, password);
 
@@ -472,8 +524,6 @@ void setup()
   Serial.println("");
   Serial.println(" connected");
   delay(100);
-
-  initialize_pins();
 
   udp_client.begin(client_port);
   //Serial.print("listening on port:");
