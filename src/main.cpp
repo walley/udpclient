@@ -453,11 +453,10 @@ void blink_for(int sec, int interval)
 
   while (millis() < start + sec * 1000) {
     if ((millis() - led_prev_millis) < interval) {
-      Serial.println("in");
+      delay(1);
       digitalWrite(LED_STATUS, led_status_light);
     } else {
-      Serial.println("out");
-
+      delay(1);
       led_prev_millis = millis();
       led_status_light = !led_status_light;
     }
