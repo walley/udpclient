@@ -4,7 +4,13 @@
 #include <ESP8266WiFi.h>
 #include <LittleFS.h>
 
+//GPIO
 #define BUTTON_1 D6
+#define RELAY_1 D1
+#define LED_STATUS D4
+#define LED_BIN_1 D2
+#define LED_BIN_2 D5
+#define LED_BIN_3 D8
 
 #define PROTO_SPECIAL_CONNECTED "01"
 #define PROTO_SPECIAL_PONG "02"
@@ -17,11 +23,6 @@
 #define STATE_RACE 1235
 #define STATE_SETTING_NETWORK 12
 #define STATE_SETTING_DEVICE  13
-
-#define LED_STATUS D4
-#define LED_BIN_1 D2
-#define LED_BIN_2 D5
-#define LED_BIN_3 D8
 
 //#define SERIAL_DEBUG
 #define KEYBOARD_DEBUG
@@ -94,14 +95,14 @@ void send_info_packet()
 #endif
 }
 
-void led_blink()
+void led_blink(int delayt)
 {
 
-  digitalWrite(LED_BUILTIN, LOW);
-  digitalWrite(LED_STATUS, LOW);
-  delay(100);
   digitalWrite(LED_STATUS, HIGH);
   digitalWrite(LED_BUILTIN, HIGH);
+  delay(delayt);
+  digitalWrite(LED_BUILTIN, LOW);
+  digitalWrite(LED_STATUS, LOW);
 }
 
 void led_status_lights()
@@ -169,8 +170,9 @@ void initialize_pins()
   pinMode(15, INPUT_PULLUP); //D8
   pinMode(12, INPUT_PULLUP); //D6
 
-  pinMode(LED_BUILTIN, OUTPUT);
+  pinMode(RELAY_1, OUTPUT);
 
+  pinMode(LED_BUILTIN, OUTPUT);
   pinMode(LED_STATUS, OUTPUT);
 
   pinMode(LED_BIN_1, OUTPUT);
@@ -291,7 +293,6 @@ void press_short ()
             network_identification = 0;
           }
 
-          led_blink();
 #ifdef LED_DEBUG
           Serial.print("network_identification:");
           Serial.println(network_identification);
@@ -304,7 +305,6 @@ void press_short ()
             device_identification = 0;
           }
 
-          led_blink();
 #ifdef LED_DEBUG
           Serial.print("device_identification:");
           Serial.println(device_identification);
@@ -354,7 +354,6 @@ void check_keys()
 #endif
       strcpy(ReplyPacket, "11");
       send_info_packet();
-      led_blink();
 
       unsigned long press_length = millis() - press_start;
 
@@ -496,6 +495,8 @@ void setup()
 {
   int len;
 
+  digitalWrite(RELAY_1, LOW);
+
   Serial.begin(9600);
   Serial.println();
   initialize_pins();
@@ -554,8 +555,9 @@ void setup()
       }
     }
 
-    delay(10);
-    //Serial.print("#");
+    //delay(10);
+    Serial.print("#");
+    led_blink(100);
 
   }
 
@@ -585,7 +587,7 @@ void loop()
 
   check_keys();
 
-  start_millis = millis();
+  //start_millis = millis();
 
   packet_size = udp_client.parsePacket();
 
