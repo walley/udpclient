@@ -7,6 +7,7 @@
 //GPIO
 #define BUTTON_1 D6
 #define RELAY_1 D1
+#define EXTERNAL_1 D7
 #define LED_STATUS D4
 #define LED_BIN_1 D2
 #define LED_BIN_2 D5
@@ -53,6 +54,7 @@ unsigned long led_prev_millis;
 int led_status_light = 0;
 
 int race; //state of race 0: stop 1:start 2:cil
+int external_status;
 int switch_status;
 int switch_status_last;
 int machine_state = STATE_NOTHING;
@@ -169,6 +171,8 @@ void initialize_pins()
 {
   pinMode(15, INPUT_PULLUP); //D8
   pinMode(12, INPUT_PULLUP); //D6
+
+  pinMode(EXTERNAL_1, INPUT_PULLUP);
 
   pinMode(RELAY_1, OUTPUT);
 
@@ -331,6 +335,15 @@ void press_short ()
 void check_keys()
 {
   switch_status = digitalRead(D6);
+  external_status = digitalRead(EXTERNAL_1);
+
+  if (!external_status)  {
+    //pressed
+    Serial.println("external not true");
+  }  else  {
+    //depressed
+    Serial.println("external true");
+  }
 
   if (!switch_status)  {
     //pressed
@@ -540,6 +553,10 @@ void setup()
 
   //Serial.println("waiting ...");
 
+  unsigned int interval = 200;
+  unsigned long prev_millis = millis();
+  int led_status_light = 0;
+
   for (;;) {
     len = udp_client.read(incomingPacket, 255);
 
@@ -555,9 +572,17 @@ void setup()
       }
     }
 
-    //delay(10);
+    unsigned long curr_millis = millis();
+
+    if ((unsigned long)(curr_millis - prev_millis) < interval) {
+      digitalWrite(LED_STATUS, led_status_light);
+    } else  {
+      prev_millis = millis();
+      led_status_light = !led_status_light;
+    }
+
+    delay(10);
     Serial.print("#");
-    led_blink(100);
 
   }
 
