@@ -26,7 +26,7 @@
 #define STATE_SETTING_NETWORK 12
 #define STATE_SETTING_DEVICE  13
 
-//#define SERIAL_DEBUG
+#define SERIAL_DEBUG
 #define KEYBOARD_DEBUG
 #define LED_DEBUG
 
@@ -37,7 +37,7 @@ const char *lane_id = "1";
 WiFiUDP udp_client;
 unsigned int client_port = 12345; // local port to listen on
 unsigned int server_port = 4210;
-const char *server_ip = "192.168.145.1";
+char server_ip[20];
 char incomingPacket[255]; // buffer for incoming packets
 char ReplyPacket[30];      // a reply string to send back
 bool result;
@@ -75,7 +75,9 @@ int get_comm_channel()
 void set_ipv4()
 {
   int x = get_comm_channel();
-  const char *server_ip = "192.168.145.1";
+  sprintf(server_ip, "192.168.%i.1", x);
+  Serial.print("Server_ip:");
+  Serial.println(server_ip);
   //ip_addr = new IPAddress(192,168,x,1);  //server ip address
   //gateway = new IPAddress(192,168,x,1);
   //subnet = new IPAddress(255,255,255,0);
@@ -90,8 +92,8 @@ void send_info_packet()
   Serial.print(server_ip);
   Serial.println(server_port);
 #endif
-  //udp_client.beginPacket(server_ip, server_port);
-  udp_client.beginPacket("192.168.145.1", 4210);
+  udp_client.beginPacket(server_ip, server_port);
+  //udp_client.beginPacket(server_ip, 4210);
   udp_client.write(ReplyPacket);
   udp_client.endPacket();
 #ifdef SERIAL_DEBUG
@@ -530,8 +532,7 @@ void wifi_connection()
   Serial.println("Connecting to wifi ...");
 
 
-  Serial.printf("Connecting to %s ", ssid);
-  strcpy(ssid,"zavod");
+  Serial.printf("Connecting to %s:", ssid);
   WiFi.begin(ssid, password);
 
   while (WiFi.status() != WL_CONNECTED) {
@@ -541,6 +542,9 @@ void wifi_connection()
     digitalWrite(LED_STATUS, HIGH);
   }
 
+
+
+  Serial.println(WiFi.localIP());
   Serial.println("");
   Serial.println("Connected");
   delay(100);
@@ -559,6 +563,13 @@ void loop_wifi_login()
   int led_status_light = 0;
   int len;
 
+  set_ipv4();
+
+  Serial.print("Server:");
+  Serial.print(server_ip);
+  Serial.print(":");
+  Serial.println(server_port);
+
 //send login packet
 
   sprintf(ReplyPacket, "%i0", device_identification);
@@ -570,12 +581,14 @@ void loop_wifi_login()
 
     if (len > 0)  {
       incomingPacket[len] = 0;
-      //Serial.println("incoming");
-      //Serial.println(incomingPacket);
+      Serial.println("incoming");
+      Serial.println(incomingPacket);
 
       if (!strcmp(incomingPacket, PROTO_SPECIAL_CONNECTED))  {
         //continue to loop
-        //Serial.println("done");
+        Serial.println("login done");
+        machine_state = STATE_RACE;
+
         return;
       }
     }
@@ -587,10 +600,10 @@ void loop_wifi_login()
     } else  {
       prev_millis = millis();
       led_status_light = !led_status_light;
+      Serial.print("#");
     }
 
     delay(10);
-    Serial.print("#");
 
   }
 }
