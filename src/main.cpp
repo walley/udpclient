@@ -30,7 +30,7 @@
 #define KEYBOARD_DEBUG
 #define LED_DEBUG
 
-char ssid[7];
+char ssid[15];
 const char *password = "xxxxxxxxx";
 const char *lane_id = "1";
 
@@ -68,7 +68,8 @@ bool is_bit(int num, int pos)
 
 int get_comm_channel()
 {
-  return 145;
+  return network_identification + 140;
+  //return 145;
 }
 
 void set_ipv4()
@@ -132,12 +133,13 @@ void led_status_lights()
 
       break;
 
+    case STATE_WIFI:
+      break;
+
     case STATE_RACE:
       digitalWrite(LED_STATUS, HIGH);
       break;
   }
-
-
 }
 
 void led_bin_lights(int x)
@@ -261,7 +263,6 @@ int settings_get()
 
   f.close();
 
-  strcpy(ssid,"zavod");
   return 1;
 }
 
@@ -521,38 +522,48 @@ void loop_race()
 
 void wifi_connection()
 {
-  Serial.println("wifi");
+  int channel;
+
+  channel = get_comm_channel();
+  sprintf(ssid, "zavod%i", channel);
+
+  Serial.println("Connecting to wifi ...");
+
 
   Serial.printf("Connecting to %s ", ssid);
-
+  strcpy(ssid,"zavod");
   WiFi.begin(ssid, password);
 
   while (WiFi.status() != WL_CONNECTED) {
+    digitalWrite(LED_STATUS, LOW);
     delay(200);
     Serial.print(".");
+    digitalWrite(LED_STATUS, HIGH);
   }
 
   Serial.println("");
-  Serial.println(" connected");
+  Serial.println("Connected");
   delay(100);
 
   udp_client.begin(client_port);
-  //Serial.print("listening on port:");
-  //Serial.println(client_port);
+  Serial.print("listening on port:");
+  Serial.println(client_port);
 
-//send login packet
-
-  strcpy(ReplyPacket, lane_id);
-  strcat(ReplyPacket, "0");
-
-  send_info_packet();
+  machine_state = STATE_LOGIN;
 }
+
 void loop_wifi_login()
 {
   unsigned int interval = 200;
   unsigned long prev_millis = millis();
   int led_status_light = 0;
   int len;
+
+//send login packet
+
+  sprintf(ReplyPacket, "%i0", device_identification);
+
+  send_info_packet();
 
   for (;;) {
     len = udp_client.read(incomingPacket, 255);
@@ -679,6 +690,16 @@ void setup()
 
 unsigned long prev_millis = millis();
 
+//
+
+//       ///////  ///////  ///////
+//       //   //  //   //  //   //
+//       //   //  //   //  ///////
+//       //   //  //   //  //
+///////  ///////  ///////  //
+
+//
+
 void loop()
 {
   unsigned long curr_millis = millis();
@@ -688,6 +709,7 @@ void loop()
     check_keys();
     led_status_lights();
   } else  {
+    //once per second stuff
     //heartbeat();
     prev_millis = millis();
   }
