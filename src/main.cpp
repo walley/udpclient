@@ -18,6 +18,7 @@
 //wifi
 
 #define STATE_NOTHING 0
+#define STATE_WIFI 1231
 #define STATE_CHECK 1232
 #define STATE_LOGIN 1233
 #define STATE_SETTING 1234
@@ -503,26 +504,23 @@ void settings_show()
   Serial.println("settings done");
 }
 
-
-void setup()
+void loop_race()
 {
-  int len;
+  int packet_size;
+  packet_size = udp_client.parsePacket();
 
-  digitalWrite(RELAY_1, LOW);
-
-  Serial.begin(9600);
-  Serial.println();
-  initialize_pins();
-  initialize_leds();
-
-  if (!LittleFS.begin()) {
-    Serial.println("fs error");
+  if (packet_size)  {
+    strcpy(ReplyPacket,"");
+    process_packet(packet_size);
+    send_info_packet();
   }
 
-  Serial.println("settings");
-  settings_show();
+
+}
 
 
+void wifi_connection()
+{
   Serial.println("wifi");
 
   Serial.printf("Connecting to %s ", ssid);
@@ -548,11 +546,98 @@ void setup()
   strcat(ReplyPacket, "0");
 
   send_info_packet();
+}
+void loop_wifi_login()
+{
+  unsigned int interval = 200;
+  unsigned long prev_millis = millis();
+  int led_status_light = 0;
+  int len;
 
-  //wait for response
+  for (;;) {
+    len = udp_client.read(incomingPacket, 255);
 
-  //Serial.println("waiting ...");
+    if (len > 0)  {
+      incomingPacket[len] = 0;
+      //Serial.println("incoming");
+      //Serial.println(incomingPacket);
 
+      if (!strcmp(incomingPacket, PROTO_SPECIAL_CONNECTED))  {
+        //continue to loop
+        //Serial.println("done");
+        return;
+      }
+    }
+
+    unsigned long curr_millis = millis();
+
+    if ((unsigned long)(curr_millis - prev_millis) < interval) {
+      digitalWrite(LED_STATUS, led_status_light);
+    } else  {
+      prev_millis = millis();
+      led_status_light = !led_status_light;
+    }
+
+    delay(10);
+    Serial.print("#");
+
+  }
+}
+
+void setup()
+{
+  int len;
+
+  digitalWrite(RELAY_1, LOW);
+
+  Serial.begin(9600);
+  Serial.println();  //to solve garbage after reset
+  initialize_pins();
+  initialize_leds();
+
+  if (!LittleFS.begin()) {
+    Serial.println("fs error");
+  }
+
+  Serial.println("settings");
+  settings_show();
+
+  machine_state = STATE_WIFI;
+
+//return !!! rest is done by loop()
+  /*
+    Serial.println("wifi");
+
+    Serial.printf("Connecting to %s ", ssid);
+
+    WiFi.begin(ssid, password);
+
+    while (WiFi.status() != WL_CONNECTED) {
+      delay(200);
+      Serial.print(".");
+    }
+
+    Serial.println("");
+    Serial.println(" connected");
+    delay(100);
+
+    udp_client.begin(client_port);
+    //Serial.print("listening on port:");
+    //Serial.println(client_port);
+
+  //send login packet
+
+    strcpy(ReplyPacket, lane_id);
+    strcat(ReplyPacket, "0");
+
+    send_info_packet();
+
+    //wait for response
+
+    //Serial.println("waiting ...");
+  */
+
+  /*
   unsigned int interval = 200;
   unsigned long prev_millis = millis();
   int led_status_light = 0;
@@ -585,6 +670,7 @@ void setup()
     Serial.print("#");
 
   }
+  */
 
   //Serial.println("connected");
   switch_status_last = switch_status = 0;
@@ -595,10 +681,6 @@ unsigned long prev_millis = millis();
 
 void loop()
 {
-  int packet_size;
-
-  strcpy(ReplyPacket,"");
-
   unsigned long curr_millis = millis();
   int interval = 1000;
 
@@ -612,13 +694,28 @@ void loop()
 
   check_keys();
 
-  //start_millis = millis();
+  switch (machine_state) {
+    case STATE_WIFI:
+      wifi_connection();
+      break;
 
-  packet_size = udp_client.parsePacket();
+    case STATE_LOGIN:
+      loop_wifi_login();
+      break;
 
-  if (packet_size)  {
-    process_packet(packet_size);
+    case STATE_NOTHING:
+      //start
+      break;
+
+    case STATE_SETTING:
+      break;
+
+    case STATE_RACE:
+      loop_race();
+      break;
   }
 
-  send_info_packet();
+  //start_millis = millis();
+
+
 }
