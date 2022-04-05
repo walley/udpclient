@@ -31,14 +31,14 @@
 #define KEYBOARD_DEBUG
 #define LED_DEBUG
 
-char ssid[15];
+char ssid[20];
 const char *password = "xxxxxxxxx";
 const char *lane_id = "1";
 
 WiFiUDP udp_client;
 unsigned int client_port = 12345; // local port to listen on
 unsigned int server_port = 4210;
-char server_ip[20];
+char server_ip[30];
 char incomingPacket[255]; // buffer for incoming packets
 char ReplyPacket[30];      // a reply string to send back
 bool result;
@@ -57,6 +57,7 @@ int led_status_light = 0;
 
 int race; //state of race 0: stop 1:start 2:cil
 int external_status;
+int external_status_last;
 int switch_status;
 int switch_status_last;
 int machine_state = STATE_NOTHING;
@@ -351,6 +352,10 @@ void check_keys()
     //depressed
   }
 
+  if (external_status != external_status_last)  {
+    external_status_last = external_status;
+  }
+
   if (!switch_status)  {
     //pressed
     if (press_start) {
@@ -442,13 +447,11 @@ void check_keys()
         Serial.println("long during race");
         break;
     }
-
   }
 
   if (press_time > 300) {
     press_counter = 0;
     //Serial.println("double click cleared");
-
   }
 
 }
