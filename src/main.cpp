@@ -23,6 +23,7 @@
 #define STATE_LOGIN 1233
 #define STATE_SETTING 1234
 #define STATE_RACE 1235
+#define STATE_IDLE 1236
 #define STATE_SETTING_NETWORK 12
 #define STATE_SETTING_DEVICE  13
 
@@ -344,9 +345,10 @@ void check_keys()
   if (!external_status)  {
     //pressed
     Serial.println("external not true");
+    strcpy(ReplyPacket, "11");
+    send_info_packet();
   }  else  {
     //depressed
-    Serial.println("external true");
   }
 
   if (!switch_status)  {
@@ -369,8 +371,7 @@ void check_keys()
       Serial.print("machine_state:");
       Serial.println(machine_state);
 #endif
-      strcpy(ReplyPacket, "11");
-      send_info_packet();
+
 
       unsigned long press_length = millis() - press_start;
 
@@ -438,6 +439,7 @@ void check_keys()
         break;
 
       case STATE_RACE:
+        Serial.println("long during race");
         break;
     }
 
@@ -517,7 +519,6 @@ void loop_race()
     process_packet(packet_size);
     send_info_packet();
   }
-
 
 }
 
@@ -629,72 +630,6 @@ void setup()
   machine_state = STATE_WIFI;
 
 //return !!! rest is done by loop()
-  /*
-    Serial.println("wifi");
-
-    Serial.printf("Connecting to %s ", ssid);
-
-    WiFi.begin(ssid, password);
-
-    while (WiFi.status() != WL_CONNECTED) {
-      delay(200);
-      Serial.print(".");
-    }
-
-    Serial.println("");
-    Serial.println(" connected");
-    delay(100);
-
-    udp_client.begin(client_port);
-    //Serial.print("listening on port:");
-    //Serial.println(client_port);
-
-  //send login packet
-
-    strcpy(ReplyPacket, lane_id);
-    strcat(ReplyPacket, "0");
-
-    send_info_packet();
-
-    //wait for response
-
-    //Serial.println("waiting ...");
-  */
-
-  /*
-  unsigned int interval = 200;
-  unsigned long prev_millis = millis();
-  int led_status_light = 0;
-
-  for (;;) {
-    len = udp_client.read(incomingPacket, 255);
-
-    if (len > 0)  {
-      incomingPacket[len] = 0;
-      //Serial.println("incoming");
-      //Serial.println(incomingPacket);
-
-      if (!strcmp(incomingPacket, PROTO_SPECIAL_CONNECTED))  {
-        //continue to loop
-        //Serial.println("done");
-        return;
-      }
-    }
-
-    unsigned long curr_millis = millis();
-
-    if ((unsigned long)(curr_millis - prev_millis) < interval) {
-      digitalWrite(LED_STATUS, led_status_light);
-    } else  {
-      prev_millis = millis();
-      led_status_light = !led_status_light;
-    }
-
-    delay(10);
-    Serial.print("#");
-
-  }
-  */
 
   //Serial.println("connected");
   switch_status_last = switch_status = 0;
