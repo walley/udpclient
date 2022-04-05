@@ -345,14 +345,23 @@ void check_keys()
 
   if (!external_status)  {
     //pressed
-    Serial.println("external not true");
-    strcpy(ReplyPacket, "11");
-    send_info_packet();
   }  else  {
     //depressed
   }
 
   if (external_status != external_status_last)  {
+    //DEPRESS
+    if (external_status == HIGH && external_status_last == LOW) {
+      Serial.println("external press end");
+      sprintf(ReplyPacket, "%i1", device_identification);
+      send_info_packet();
+    }
+
+    //PRESS
+    if (external_status == LOW && external_status_last == HIGH) {
+      Serial.println("external press start");
+    }
+
     external_status_last = external_status;
   }
 
@@ -636,6 +645,8 @@ void setup()
 
   //Serial.println("connected");
   switch_status_last = switch_status = 0;
+  external_status = external_status_last = digitalRead(EXTERNAL_1);
+
 }
 
 
