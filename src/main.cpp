@@ -143,6 +143,10 @@ void led_status_lights()
     case STATE_RACE:
       digitalWrite(LED_STATUS, HIGH);
       break;
+
+    case STATE_IDLE:
+      digitalWrite(LED_STATUS, HIGH);
+      break;
   }
 }
 
@@ -692,6 +696,9 @@ void loop()
       break;
 
     case STATE_SETTING:
+      break;
+
+    case STATE_IDLE:
       break;
 
     case STATE_RACE:
