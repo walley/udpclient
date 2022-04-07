@@ -446,7 +446,7 @@ void check_keys()
 
     switch (machine_state) {
       case STATE_SETTING:
-        machine_state = STATE_RACE;
+        machine_state = STATE_IDLE;
         settings_set();
         hold_long = 0;
         break;
@@ -523,6 +523,18 @@ void settings_show()
   //light up state_led
   digitalWrite(LED_STATUS, HIGH);
   Serial.println("settings done");
+}
+
+void loop_idle()
+{
+int packet_size;
+  packet_size = udp_client.parsePacket();
+
+  if (packet_size)  {
+    strcpy(ReplyPacket,"");
+    process_packet(packet_size);
+    send_info_packet();
+  }
 }
 
 void loop_race()
@@ -699,6 +711,7 @@ void loop()
       break;
 
     case STATE_IDLE:
+      loop_idle();
       break;
 
     case STATE_RACE:
