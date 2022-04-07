@@ -92,14 +92,15 @@ void send_info_packet()
 #ifdef SERIAL_DEBUG
   Serial.print("sending packet ");
   Serial.print(server_ip);
+  Serial.print(":");
   Serial.println(server_port);
 #endif
+
   udp_client.beginPacket(server_ip, server_port);
-  //udp_client.beginPacket(server_ip, 4210);
   udp_client.write(ReplyPacket);
   udp_client.endPacket();
 #ifdef SERIAL_DEBUG
-  Serial.printf("%s sent ... \n", ReplyPacket);
+  Serial.printf("-%s- sent ... \n", ReplyPacket);
 #endif
 }
 
@@ -145,7 +146,16 @@ void led_status_lights()
       break;
 
     case STATE_IDLE:
-      digitalWrite(LED_STATUS, HIGH);
+      led_setup_interval = 100;
+
+      if ((unsigned long)(millis() - led_prev_millis) < led_setup_interval) {
+        digitalWrite(LED_STATUS, led_status_light);
+      } else  {
+
+        led_prev_millis = millis();
+        led_status_light = !led_status_light;
+      }
+
       break;
   }
 }
@@ -297,7 +307,12 @@ void press_short ()
   press_counter = 0;
 
   switch  (machine_state) {
+    case STATE_IDLE:
+      Serial.println("press_short(): Idle, waiting for start");
+      break;
+
     case STATE_RACE:
+      Serial.println("press_short(): Race");
       break;
 
     case STATE_SETTING:
@@ -459,6 +474,11 @@ void check_keys()
       case STATE_RACE:
         Serial.println("long during race");
         break;
+
+      case STATE_IDLE:
+        Serial.println("long during idle");
+        machine_state = STATE_SETTING;
+        break;
     }
   }
 
@@ -527,7 +547,7 @@ void settings_show()
 
 void loop_idle()
 {
-int packet_size;
+  int packet_size;
   packet_size = udp_client.parsePacket();
 
   if (packet_size)  {
@@ -571,11 +591,10 @@ void wifi_connection()
     digitalWrite(LED_STATUS, HIGH);
   }
 
-
-
+  Serial.println("");   //lf after dots
+  Serial.print("Connected, IP ");
   Serial.println(WiFi.localIP());
-  Serial.println("");
-  Serial.println("Connected");
+  Serial.println("Starting UDP client");
   delay(100);
 
   udp_client.begin(client_port);
@@ -605,19 +624,20 @@ void loop_wifi_login()
 
   send_info_packet();
 
+  Serial.println("Waiting for response! ...");
+
   for (;;) {
     len = udp_client.read(incomingPacket, 255);
 
     if (len > 0)  {
       incomingPacket[len] = 0;
-      Serial.println("incoming");
+      Serial.println("incoming packet");
       Serial.println(incomingPacket);
 
       if (!strcmp(incomingPacket, PROTO_SPECIAL_CONNECTED))  {
         //continue to loop
         Serial.println("login done");
-        machine_state = STATE_RACE;
-
+        machine_state = STATE_IDLE;
         return;
       }
     }
@@ -639,27 +659,30 @@ void loop_wifi_login()
 
 void setup()
 {
-  int len;
 
   digitalWrite(RELAY_1, LOW);
 
   Serial.begin(9600);
   Serial.println();  //to solve garbage after reset
+  Serial.println("HW Start:");
   initialize_pins();
   initialize_leds();
 
+  Serial.print("FS:");
+
   if (!LittleFS.begin()) {
     Serial.println("fs error");
+  } else {
+    Serial.println("[ok]");
   }
 
-  Serial.println("settings");
+  Serial.println("Settings:");
   settings_show();
 
   machine_state = STATE_WIFI;
 
 //return !!! rest is done by loop()
 
-  //Serial.println("connected");
   switch_status_last = switch_status = 0;
   external_status = external_status_last = digitalRead(EXTERNAL_1);
 
