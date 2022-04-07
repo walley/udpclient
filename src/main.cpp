@@ -146,7 +146,7 @@ void led_status_lights()
       break;
 
     case STATE_IDLE:
-      led_setup_interval = 100;
+      led_setup_interval = 50;
 
       if ((unsigned long)(millis() - led_prev_millis) < led_setup_interval) {
         digitalWrite(LED_STATUS, led_status_light);
@@ -421,7 +421,7 @@ void check_keys()
         }
       }
 
-      if (press_length > 100 && press_length < 700) {
+      if (press_length > 50 && press_length < 700) {
         //short press
         press_short();
       }
@@ -461,7 +461,7 @@ void check_keys()
 
     switch (machine_state) {
       case STATE_SETTING:
-        machine_state = STATE_IDLE;
+        machine_state = STATE_WIFI;
         settings_set();
         hold_long = 0;
         break;
@@ -478,6 +478,7 @@ void check_keys()
       case STATE_IDLE:
         Serial.println("long during idle");
         machine_state = STATE_SETTING;
+        hold_long = 0;
         break;
     }
   }
@@ -522,13 +523,6 @@ void blink_for(int sec, int interval)
 void settings_show()
 {
   Serial.println("settings show (n d)");
-
-  //network setting
-  if (settings_get()) {
-    Serial.println("settings get");
-  } else {
-    Serial.println("settings not");
-  }
 
   Serial.println(network_identification);
   Serial.println(device_identification);
@@ -576,6 +570,7 @@ void wifi_connection()
   int channel;
 
   channel = get_comm_channel();
+  channel = 142;
   sprintf(ssid, "zavod%i", channel);
 
   Serial.println("Connecting to wifi ...");
@@ -626,7 +621,7 @@ void loop_wifi_login()
 
   Serial.println("Waiting for response! ...");
 
-  for (;;) {
+  for (int ii = 0; ii < 2000; ii++) {
     len = udp_client.read(incomingPacket, 255);
 
     if (len > 0)  {
@@ -655,6 +650,8 @@ void loop_wifi_login()
     delay(10);
 
   }
+
+  Serial.println("!");
 }
 
 void setup()
@@ -677,9 +674,17 @@ void setup()
   }
 
   Serial.println("Settings:");
+
+  //network setting
+  if (settings_get()) {
+    Serial.println("settings get");
+  } else {
+    Serial.println("settings not");
+  }
+
   settings_show();
 
-  machine_state = STATE_WIFI;
+  machine_state = STATE_SETTING;
 
 //return !!! rest is done by loop()
 
@@ -707,7 +712,7 @@ void loop()
   int interval = 1000;
 
   if ((unsigned long)(curr_millis - prev_millis) < interval) {
-    check_keys();
+    //check_keys();
     led_status_lights();
   } else  {
     //once per second stuff
