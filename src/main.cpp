@@ -357,6 +357,20 @@ void press_short ()
 }
 
 
+void press_long()
+{
+  //long press
+  //reset counter
+  press_counter = 0;
+#ifdef KEYBOARD_DEBUG
+  Serial.println("long press");
+#endif
+
+  if (machine_state == STATE_SETTING && setting_state == STATE_SETTING_NETWORK) {
+    setting_state = STATE_SETTING_DEVICE;
+  }
+}
+
 void check_keys()
 {
   switch_status = digitalRead(D6);
@@ -407,39 +421,24 @@ void check_keys()
 
 
       unsigned long press_length = millis() - press_start;
+      Serial.println(press_length);
 
       if (press_length > 700 && press_length < 1500) {
-        //long press
-        //reset counter
-        press_counter = 0;
-#ifdef KEYBOARD_DEBUG
-        Serial.println("long press");
-#endif
+        press_long();
 
-        if (machine_state == STATE_SETTING && setting_state == STATE_SETTING_NETWORK) {
-          setting_state = STATE_SETTING_DEVICE;
-        }
       }
 
-      if (press_length > 50 && press_length < 700) {
-        //short press
+      ////// SHORT PRESS
+      if (press_length > 40 && press_length < 700) {
         press_short();
       }
-
-
-      /*if (press_length > 100 && press_length < 300 && press_counter > 2) {
-        Serial.println("double press");
-        //reset counter
-        press_counter = 0;
-        //set device
-      }*/
 
       press_start = 0;
     }
 
 //PRESS
     if (switch_status == LOW && switch_status_last == HIGH) {
-      //Serial.println("switch press start");
+      Serial.println("switch press start");
       press_start = millis();
       press_counter++;
     }
