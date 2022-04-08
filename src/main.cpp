@@ -29,7 +29,7 @@
 
 #define SERIAL_DEBUG
 #define KEYBOARD_DEBUG
-#define LED_DEBUG
+#undef LED_DEBUG
 
 char ssid[20];
 const char *password = "xxxxxxxxx";
@@ -114,6 +114,21 @@ void led_blink(int delayt)
   digitalWrite(LED_STATUS, LOW);
 }
 
+void led_bin_lights(int x)
+{
+#ifdef LED_DEBUG
+  Serial.print(is_bit(x,2));
+  Serial.print(is_bit(x,1));
+  Serial.print(is_bit(x,0));
+  Serial.println();
+#endif
+
+  digitalWrite(LED_BIN_1, is_bit(x,2) ? HIGH : LOW );
+  digitalWrite(LED_BIN_2, is_bit(x,1) ? HIGH : LOW );
+  digitalWrite(LED_BIN_3, is_bit(x,0) ? HIGH : LOW );
+
+}
+
 void led_status_lights()
 {
   switch  (machine_state) {
@@ -146,7 +161,8 @@ void led_status_lights()
       break;
 
     case STATE_IDLE:
-      led_setup_interval = 50;
+      led_bin_lights(0);
+      led_setup_interval = 80;
 
       if ((unsigned long)(millis() - led_prev_millis) < led_setup_interval) {
         digitalWrite(LED_STATUS, led_status_light);
@@ -160,20 +176,7 @@ void led_status_lights()
   }
 }
 
-void led_bin_lights(int x)
-{
-#ifdef LED_DEBUG
-  Serial.print(is_bit(x,2));
-  Serial.print(is_bit(x,1));
-  Serial.print(is_bit(x,0));
-  Serial.println();
-#endif
 
-  digitalWrite(LED_BIN_1, is_bit(x,2) ? HIGH : LOW );
-  digitalWrite(LED_BIN_2, is_bit(x,1) ? HIGH : LOW );
-  digitalWrite(LED_BIN_3, is_bit(x,0) ? HIGH : LOW );
-
-}
 
 
 void comm_info()
@@ -322,10 +325,10 @@ void press_short ()
             network_identification = 0;
           }
 
-#ifdef LED_DEBUG
+
           Serial.print("network_identification:");
           Serial.println(network_identification);
-#endif
+
           led_bin_lights(network_identification);
           break;
 
@@ -334,10 +337,8 @@ void press_short ()
             device_identification = 0;
           }
 
-#ifdef LED_DEBUG
           Serial.print("device_identification:");
           Serial.println(device_identification);
-#endif
           led_bin_lights(device_identification);
           break;
 
@@ -368,6 +369,42 @@ void press_long()
 
   if (machine_state == STATE_SETTING && setting_state == STATE_SETTING_NETWORK) {
     setting_state = STATE_SETTING_DEVICE;
+  }
+}
+
+void press_and_hold()
+{
+  press_counter = 0;
+#ifdef KEYBOARD_DEBUG
+  Serial.println("long hold");
+  Serial.print("machine_state:");
+  Serial.println(machine_state);
+  Serial.print("setting_state:");
+  Serial.println(setting_state);
+#endif
+  hold_long = 1;
+
+  switch (machine_state) {
+    case STATE_SETTING:
+      machine_state = STATE_WIFI;
+      settings_set();
+      hold_long = 0;
+      break;
+
+    case STATE_NOTHING:
+      machine_state = STATE_SETTING;
+      setting_state = STATE_SETTING_NETWORK;
+      break;
+
+    case STATE_RACE:
+      Serial.println("long during race");
+      break;
+
+    case STATE_IDLE:
+      Serial.println("long during idle");
+      machine_state = STATE_NOTHING;
+      hold_long = 0;
+      break;
   }
 }
 
@@ -423,9 +460,9 @@ void check_keys()
       unsigned long press_length = millis() - press_start;
       Serial.println(press_length);
 
-      if (press_length > 700 && press_length < 1500) {
+      //LONG PRESS
+      if (press_length > 700 && press_length < 2500) {
         press_long();
-
       }
 
       ////// SHORT PRESS
@@ -448,38 +485,7 @@ void check_keys()
 
 //long hold
   if (press_time > 3000 and !hold_long) {
-    press_counter = 0;
-#ifdef KEYBOARD_DEBUG
-    Serial.println("long hold");
-    Serial.print("machine_state:");
-    Serial.println(machine_state);
-    Serial.print("setting_state:");
-    Serial.println(setting_state);
-#endif
-    hold_long = 1;
-
-    switch (machine_state) {
-      case STATE_SETTING:
-        machine_state = STATE_WIFI;
-        settings_set();
-        hold_long = 0;
-        break;
-
-      case STATE_NOTHING:
-        machine_state = STATE_SETTING;
-        setting_state = STATE_SETTING_NETWORK;
-        break;
-
-      case STATE_RACE:
-        Serial.println("long during race");
-        break;
-
-      case STATE_IDLE:
-        Serial.println("long during idle");
-        machine_state = STATE_SETTING;
-        hold_long = 0;
-        break;
-    }
+    press_and_hold();
   }
 
   if (press_time > 300) {
