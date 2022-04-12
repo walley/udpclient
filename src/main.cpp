@@ -117,6 +117,7 @@ void led_blink(int delayt)
 void led_bin_lights(int x)
 {
 #ifdef LED_DEBUG
+  Serial.printf("bin_lights val %i\n",x);
   Serial.print(is_bit(x,2));
   Serial.print(is_bit(x,1));
   Serial.print(is_bit(x,0));
@@ -135,10 +136,12 @@ void led_status_lights()
     case STATE_SETTING:
       switch  (setting_state) {
         case STATE_SETTING_NETWORK:
+          led_bin_lights(network_identification);
           led_setup_interval = 200;
           break;
 
         case STATE_SETTING_DEVICE:
+          led_bin_lights(device_identification);
           led_setup_interval = 600;
           break;
       }
@@ -451,7 +454,7 @@ void check_keys()
     //DEPRESS
     if (switch_status == HIGH && switch_status_last == LOW) {
 #ifdef KEYBOARD_DEBUG
-      Serial.println("switch press end");
+      //Serial.println("switch press end");
       Serial.print("machine_state:");
       Serial.println(machine_state);
 #endif
@@ -466,7 +469,7 @@ void check_keys()
       }
 
       ////// SHORT PRESS
-      if (press_length > 40 && press_length < 700) {
+      if (press_length > 30 && press_length < 700) {
         press_short();
       }
 
@@ -475,7 +478,7 @@ void check_keys()
 
 //PRESS
     if (switch_status == LOW && switch_status_last == HIGH) {
-      Serial.println("switch press start");
+      //Serial.println("switch press start");
       press_start = millis();
       press_counter++;
     }
