@@ -180,8 +180,6 @@ void led_status_lights()
 }
 
 
-
-
 void comm_info()
 {
 #ifdef SERIAL_DEBUG
@@ -194,7 +192,7 @@ void comm_info()
 #endif
 }
 
-void initialize_pins()
+void  initialize_pins()
 {
   pinMode(15, INPUT_PULLUP); //D8
   pinMode(12, INPUT_PULLUP); //D6
@@ -238,17 +236,16 @@ void process_packet(int pckt_size)
   //comm_info();
 
   if (!strcmp(incomingPacket, "00"))  {
-    strcpy(ReplyPacket, lane_id);
-    strcat(ReplyPacket, "2");
+    sprintf(ReplyPacket, "%i2", device_identification);
   }
 
-  if (!strcmp(incomingPacket, "start"))  {
+  /*if (!strcmp(incomingPacket, "start"))  {
     //start race
     strcpy(ReplyPacket, "13");
   }  else if (!strcmp(incomingPacket, "stop"))  {
     //end race
     strcpy(ReplyPacket, "10");
-  }
+  }*/
 
   end_millis = millis();
   //Serial.print("roundtrip:");
